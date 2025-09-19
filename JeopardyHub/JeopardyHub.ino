@@ -1,6 +1,5 @@
-#include <Wire.h>
-
-uint8_t TWI_ADDR_START = 0x10;
+#include <Arduino.h>
+#include "../SerialHelper.h"
 
 uint16_t ticks = 0;
 
@@ -9,38 +8,34 @@ uint32_t lastWrite = 0;
 void setup(){
 
 	Serial.begin(115200);
-	Wire.begin(2,1);
+	Serial2.begin(115200, SERIAL_8N1, 17,18);
 
 }
 
 void loop(){
-
+	
 	const uint32_t ms = millis();
 	if( ms-lastWrite > 1e3 ){
 		lastWrite = ms;
 		
-		Wire.beginTransmission(TWI_ADDR_START);
-		char out[32] = "Test: ";
-		char num[8];
-		itoa(ticks, num, 10); 
-		strcat(out, num);
-		Serial.println(out);
-		Wire.write((uint8_t*)out, strlen(out));
-		Wire.endTransmission();
-		
-		
-		delay(100); // Have to wait for it to update the display
 
-		Serial.println("Requesting...");
-		Wire.requestFrom(TWI_ADDR_START, 1, true);
-		
+		size_t len = 256;
+		char out[len] = {0};
+		SerialHelper::cmdSetText( ADDR_ALL, 0, 0, 1, "Hello", out, len );
+		Serial.print("Sending: ");
+		Serial.printf("Addr %i, Com %i, Size %i, Clr %i, Font %i, %s\n", out[0], out[1], out[2], out[3], out[4], out+5);
+		Serial2.println(out);
+
 		++ticks;
 
-
 	}
+	
+	while( Serial2.available() > 0 ){
+		Serial.write(Serial2.read());
+	}
+	
+	// Todo: serial receive
 
-	while( Wire.available() > 0 ) 
-		Serial.write(Wire.read());
 
 }
 
